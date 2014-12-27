@@ -1,20 +1,24 @@
-use std::io::File;
-use std::io::IoResult;
-use std::io::BufferedReader;
+use std::io::{File, Open, ReadWrite};
+use std::io::BufferedStream;
 
 pub type ReaderResult<T, E> = Result<T, E>;
 
 pub struct Reader {
+    //TODO Share one BufferedStream in the Reader to avoid overlapping actions
     path: Path,
 }
 
 pub trait ReaderFile {
 
-    fn create(&self) -> File;
+    fn create(&self) -> Box<File>;
 
-    fn open(&self) -> File;
+    fn open(&self) -> Box<File>;
 
-    fn insert(&self, String);
+    fn insert_string(&self, String);
+
+    fn insert_str(&self, &str);
+
+    fn insert(&self, item: &[u8]);
 
     fn spill(&self) -> Vec<String>;
 }
@@ -28,34 +32,42 @@ impl Reader {
 }
 
 impl ReaderFile for Reader {
-    fn create(&self) -> File {
+
+    fn create(&self) -> Box<File> {
         match File::create(&self.path) {
-            Ok(file)    => file,
+            Ok(file)    => box file,
             Err(..)     => { panic!("Unable to create file at {}", &self.path.display()); },
         }
     }
 
-    fn open(&self) -> File {
-        match File::open(&self.path) {
-            Ok(file)    => { file },
+    fn open(&self) -> Box<File> {
+        match File::open_mode(&self.path, Open, ReadWrite) {
+            Ok(file)    => box file,
             Err(..)     => { panic!("File {} couldn't be opened!", &self.path.display()); },
         }
     }
 
-    fn insert(&self, item: String) {
-        //&self.file.write(item);
-        &self.open().write_str(item.as_slice());
+    fn insert_string(&self, item: String) {
+        self.insert_str(item.as_slice());
+    }
+
+    fn insert_str(&self, item: &str) {
+        self.insert(item.as_bytes());
+    }
+
+    fn insert(&self, item: &[u8]) {
+        self.open().write(item);
     }
 
     fn spill(&self) -> Vec<String> {
         let mut result: Vec<String> = Vec::new();
-        let mut file = BufferedReader::new(self.open());
-        //for line_iter in file.lines() {
+        let mut file = BufferedStream::new(*self.open());
+        for line_iter in file.lines() {
         //    println!("{}", line_iter.unwrap());
-            let line = String::from_str(file.read_line().ok().expect("Nothing to read.").trim());
-            result.push(line);
-        //}
-        result
+            //let line = String::from_str(file.read_line().ok().expect("Nothing to read.").trim());
+            result.push(line_iter.unwrap().trim().to_string());
+        }
+        return result;
     }
 }
 
@@ -68,13 +80,24 @@ fn test_open_file() {
 // into standard output.
 #[test]
 fn test_read_file() {
-    let expected = vec![String::from_str("10 11")];
+    setup();
+    let expected = vec!["10 11".to_string(), "20 21".to_string()];
     let reader = Reader::new(Path::new("tests/base-test.txt"));
     assert_eq!(expected, reader.spill());
 }
 
 #[test]
 fn test_write_file() {
+    setup();
+    let expected = vec!["My new line".to_string()];
     let mut reader = Reader::new(Path::new("tests/base-test.txt"));
-    reader.insert("My new line".to_string());
+    reader.insert_str("My new line");
+    assert_eq![expected, reader.spill()];
+    setup(); // Temporary until this test is not the last test
+}
+
+fn setup() {
+    let reader = Reader::new(Path::new("tests/base-test.txt"));
+    let file_reader = reader.create();
+    reader.insert_str("10 11\n20 21");
 }

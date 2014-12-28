@@ -1,11 +1,15 @@
-use std::io::{File, Open, ReadWrite};
-use std::io::BufferedStream;
+use std::io::{File, Open, Append, Read, ReadWrite};
+use std::io::{BufferedReader, BufferedWriter};
 
 pub type ReaderResult<T, E> = Result<T, E>;
 
 pub struct Reader {
     //TODO Share one BufferedStream in the Reader to avoid overlapping actions
     path: Path,
+
+    read_buffer: BufferedReader<File>,
+
+    write_buffer: BufferedWriter<File>,
 }
 
 pub trait ReaderFile {
@@ -24,9 +28,17 @@ pub trait ReaderFile {
 }
 
 impl Reader {
-    pub fn new(path: Path) -> Reader {
+    pub fn new(mut apath: Path) -> Reader {
         Reader {
-            path: path,
+            path: apath.clone(),
+            read_buffer: {
+                let file = File::open_mode(&apath.clone(), Open, Read).ok().expect("ERRRRRRR");
+                BufferedReader::new(file)
+            },
+            write_buffer: {
+                let file = File::open(&apath.clone()).ok().expect("Errrr");
+                BufferedWriter::new(file)
+            }
         }
     }
 }
@@ -61,7 +73,7 @@ impl ReaderFile for Reader {
 
     fn spill(&self) -> Vec<String> {
         let mut result: Vec<String> = Vec::new();
-        let mut file = BufferedStream::new(*self.open());
+        let mut file: BufferedReader<File> = BufferedReader::new(*self.open());
         for line_iter in file.lines() {
         //    println!("{}", line_iter.unwrap());
             //let line = String::from_str(file.read_line().ok().expect("Nothing to read.").trim());

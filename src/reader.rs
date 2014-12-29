@@ -19,11 +19,6 @@ pub trait ReaderFile {
 
     fn insert_string(&mut self, String);
 
-    fn insert_str(&mut self, &str);
-
-    fn insert(&mut self, item: &[u8]);
-
-    fn spill(&mut self) -> Vec<String>;
 }
 
 impl Reader {
@@ -31,15 +26,41 @@ impl Reader {
         Reader {
             path: apath.clone(),
             read_buffer: {
-                let file = File::open_mode(&apath.clone(), Open, Read).ok().expect("ERRRRRRR");
-                BufferedReader::new(file)
+                match File::open_mode(&apath.clone(), Open, Read) {
+                    Ok(file)    => { BufferedReader::new(file) },
+                    Err(..)     => { panic!("Failed to create a read buffer to file path."); }
+                }
             },
             write_buffer: {
-                let file = File::open_mode(&apath.clone(), Open, ReadWrite).ok().expect("Errrr");
-                BufferedWriter::new(file)
+                match File::open_mode(&apath.clone(), Append, ReadWrite) {
+                    Ok(file)    => { BufferedWriter::new(file) },
+                    Err(..)     => { panic!("Failed to create a write buffer to file path."); }
+                }
             }
         }
     }
+
+    fn spill(&mut self) -> Vec<String> {
+        let mut result: Vec<String> = Vec::new();
+        for line_iter in self.read_buffer.lines() {
+        //    println!("{}", line_iter.unwrap());
+        //    let line = String::from_str(file.read_line().ok().expect("Nothing to read.").trim());
+            result.push(line_iter.unwrap().trim().to_string());
+        }
+        return result;
+    }
+
+    fn insert_str(&mut self, item: &str) {
+        //self.insert(item.as_bytes());
+        self.write_buffer.write_line(item);
+        self.write_buffer.flush();
+    }
+
+    fn insert(&mut self, item: &[u8]) {
+        self.write_buffer.write(item);
+        self.write_buffer.flush();
+    }
+
 }
 
 impl ReaderFile for Reader {
@@ -62,26 +83,6 @@ impl ReaderFile for Reader {
         self.insert_str(item.as_slice());
     }
 
-    fn insert_str(&mut self, item: &str) {
-        //self.insert(item.as_bytes());
-        self.write_buffer.write_line(item);
-        self.write_buffer.flush();
-    }
-
-    fn insert(&mut self, item: &[u8]) {
-        self.write_buffer.write(item);
-        self.write_buffer.flush();
-    }
-
-    fn spill(&mut self) -> Vec<String> {
-        let mut result: Vec<String> = Vec::new();
-        for line_iter in self.read_buffer.lines() {
-        //    println!("{}", line_iter.unwrap());
-        //    let line = String::from_str(file.read_line().ok().expect("Nothing to read.").trim());
-            result.push(line_iter.unwrap().trim().to_string());
-        }
-        return result;
-    }
 }
 
 #[test]
@@ -89,34 +90,43 @@ fn test_open_file() {
     let reader = Reader::new(Path::new("tests/base-test.txt"));
 }
 
-// We should output the entire contents of the database file we open
-// into standard output.
+//#[test]
+fn test_create_file() {
+    use std::io::fs::PathExtensions;
+    let reader = Reader::new(Path::new("tests/base-test-created.txt"));
+    reader.create();
+    let path = Path::new("tests/base-test-created.txt");
+    assert!(path.is_file());
+}
+
 #[test]
 fn test_read_file() {
-    setup();
+    // We should output the entire contents of the database file we open
+    // into standard output.
+    let mut reader = setup();
     let expected = vec!["10 11".to_string(), "20 21".to_string()];
-    let mut reader = Reader::new(Path::new("tests/base-test.txt"));
     assert_eq!(expected, reader.spill());
 }
 
 #[test]
 fn test_write_string_to_file() {
-    setup();
-    let expected = vec!["My new line".to_string()];
-    let mut reader = Reader::new(Path::new("tests/base-test.txt"));
-    reader.insert_str("My new line");
+    let mut reader = setup();
+    let expected = vec!["10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
+    reader.insert_string("30 31".to_string());
     assert_eq![expected, reader.spill()];
-    setup(); // Temporary until this test is not the last test
 }
 
 #[test]
 fn test_write_str_to_file() {
-    setup();
-
+    let mut reader = setup();
+    let expected = vec!["10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
+    reader.insert_str("30 31");
+    assert_eq![expected, reader.spill()];
 }
 
-#[allow(dead_code)]
-fn setup() {
-    let mut reader = Reader::new(Path::new("tests/base-test.txt"));
-    reader.insert_str("10 11\n20 21\n");
+#[allow(dead_code, unused_must_use)]
+fn setup() -> Reader {
+    let mut file = File::create(&Path::new("tests/base-test.txt")).ok().expect("fooo");
+    file.write_str("10 11\n20 21\n");
+    Reader::new(Path::new("tests/base-test.txt"))
 }

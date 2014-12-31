@@ -1,6 +1,7 @@
 extern crate serialize;
 
 use std::io::{File, Open, Append, Read, ReadWrite};
+use std::io::fs::PathExtensions;
 use std::io::{BufferedReader, BufferedWriter};
 use std::path::BytesContainer;
 use self::serialize::base64::{STANDARD, FromBase64, ToBase64};
@@ -8,16 +9,16 @@ use self::serialize::base64::{STANDARD, FromBase64, ToBase64};
 pub type ReaderResult<T, E> = Result<T, E>;
 
 pub struct Reader {
+
     path: Path,
 
     read_buffer: BufferedReader<File>,
 
     write_buffer: BufferedWriter<File>,
+
 }
 
 pub trait ReaderFile {
-
-    fn create(&self) -> Box<File>;
 
     fn open(&self) -> Box<File>;
 
@@ -26,12 +27,17 @@ pub trait ReaderFile {
     fn encode_record(&self, String) -> String;
 
     fn decode_record(&self, String) -> String; //TODO Maybe change this to JSON later?
+
 }
 
 impl Reader {
+
     pub fn new(apath: Path) -> Reader {
         Reader {
-            path: apath.clone(),
+            path: {
+                if !apath.exists() { File::create(&apath.clone()); }
+                apath.clone()
+            },
             read_buffer: {
                 match File::open_mode(&apath.clone(), Open, Read) {
                     Ok(file)    => { BufferedReader::new(file) },
@@ -58,7 +64,6 @@ impl Reader {
     }
 
     fn insert_str(&mut self, item: &str) {
-        //self.insert(item.as_bytes());
         self.write_buffer.write_line(item);
         self.write_buffer.flush();
     }
@@ -71,13 +76,6 @@ impl Reader {
 }
 
 impl ReaderFile for Reader {
-
-    fn create(&self) -> Box<File> {
-        match File::create(&self.path) {
-            Ok(file)    => box file,
-            Err(..)     => { panic!("Unable to create file at {}", &self.path.display()); },
-        }
-    }
 
     fn open(&self) -> Box<File> {
         match File::open_mode(&self.path, Open, ReadWrite) {
@@ -105,6 +103,7 @@ impl ReaderFile for Reader {
             Err(..) => panic!("Corrupt data, unable to decode."),
         }
     }
+
 }
 
 #[test]
@@ -112,13 +111,14 @@ fn test_open_file() {
     let reader = Reader::new(Path::new("tests/base-test.txt"));
 }
 
-//#[test]
+#[test]
 fn test_create_file() {
+    use std::io::fs;
     use std::io::fs::PathExtensions;
-    let reader = Reader::new(Path::new("tests/base-test-created.txt"));
-    reader.create();
     let path = Path::new("tests/base-test-created.txt");
-    assert!(path.is_file());
+    assert!(!path.exists());
+    let reader = Reader::new(path.clone());
+    assert!(path.exists());
 }
 
 #[test]
@@ -164,7 +164,15 @@ fn test_decode_string() {
 
 #[allow(dead_code, unused_must_use)]
 fn setup() -> Reader {
+    use std::io::fs;
+
     let mut file = File::create(&Path::new("tests/base-test.txt")).ok().expect("fooo");
     file.write_str("10 11\n20 21\n");
+
+    let p = Path::new("tests/base-test-created.txt");
+    if p.exists() {
+        fs::unlink(&p);
+    }
+
     Reader::new(Path::new("tests/base-test.txt"))
 }

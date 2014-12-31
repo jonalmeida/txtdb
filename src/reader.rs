@@ -1,5 +1,9 @@
+extern crate serialize;
+
 use std::io::{File, Open, Append, Read, ReadWrite};
 use std::io::{BufferedReader, BufferedWriter};
+use std::path::BytesContainer;
+use self::serialize::base64::{STANDARD, FromBase64, ToBase64};
 
 pub type ReaderResult<T, E> = Result<T, E>;
 
@@ -19,6 +23,9 @@ pub trait ReaderFile {
 
     fn insert_string(&mut self, String);
 
+    fn encode_record(&self, String) -> String;
+
+    fn decode_record(&self, String) -> String; //TODO Maybe change this to JSON later?
 }
 
 impl Reader {
@@ -83,6 +90,21 @@ impl ReaderFile for Reader {
         self.insert_str(item.as_slice());
     }
 
+    fn encode_record(&self, item: String) -> String {
+        item.container_as_bytes().to_base64(STANDARD)
+    }
+
+    fn decode_record(&self, item: String) -> String {
+        match item.as_slice().from_base64() {
+            Ok(vec) => {
+                match String::from_utf8(vec) {
+                    Ok(e)       => e,
+                    Err(..)  => panic!("Invalid UTF-8 sequence."),
+                }
+            }
+            Err(..) => panic!("Corrupt data, unable to decode."),
+        }
+    }
 }
 
 #[test]
@@ -122,6 +144,22 @@ fn test_write_str_to_file() {
     let expected = vec!["10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
     reader.insert_str("30 31");
     assert_eq![expected, reader.spill()];
+}
+
+#[test]
+fn test_encode_string() {
+    let reader = setup();
+    let expected = "dGhpcyBpcyBhIGxpbmU=";
+    let result = reader.encode_record("this is a line".to_string());
+    assert_eq![expected, result];
+}
+
+#[test]
+fn test_decode_string() {
+    let reader = setup();
+    let expected = "this is a line";
+    let result = reader.decode_record("dGhpcyBpcyBhIGxpbmU=".to_string());
+    assert_eq![expected, result];
 }
 
 #[allow(dead_code, unused_must_use)]

@@ -18,6 +18,16 @@ pub struct Reader {
 
 }
 
+struct Record {
+
+    id: u64,
+
+    payload: String,
+
+    metadata: String,
+
+}
+
 pub trait ReaderFile {
 
     fn open(&self) -> Box<File>;

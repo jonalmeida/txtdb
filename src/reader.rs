@@ -6,42 +6,50 @@ use std::io::{BufferedReader, BufferedWriter};
 use std::path::BytesContainer;
 use self::serialize::base64::{STANDARD, FromBase64, ToBase64};
 
+// A result type that's specfici to the Reader module.
+// TODO Decide if this is necessary
 pub type ReaderResult<T, E> = Result<T, E>;
 
+// Reader struct of its basic properties.
 pub struct Reader {
-
+    // Path to file where the Reader is created.
     path: Path,
-
+    // BufferedReader for reading the file. Initialized with the Path.
     read_buffer: BufferedReader<File>,
-
+    // BufferedWriter for writing to the file. Initialized with the Path.
     write_buffer: BufferedWriter<File>,
-
 }
 
+// Each line in the database file is a 'Record' that contains the following data to be read
+// and serialized.
 struct Record {
-
+    // Unique (?) id given to each record.
     id: u64,
-
+    // The payload of each record that is Base64 encoded and JSON serialized.
     payload: String,
-
+    // Any necessary metedata needed to identify the record. TODO Base64 encoded and JSON encoded?
     metadata: String,
 
 }
 
+// ReaderFile traits
 pub trait ReaderFile {
-
+    // Opens a new File to the Path provided.
+    // Returns a boxed File.
     fn open(&self) -> Box<File>;
-
+    // Inserts a string to the database.
     fn insert_string(&mut self, String);
-
+    // Encodes a record to Base64 (with standard encoding).
     fn encode_record(&self, String) -> String;
-
+    // Decoes a record from Base64.
     fn decode_record(&self, String) -> String; //TODO Maybe change this to JSON later?
 
 }
 
 impl Reader {
-
+    // Creates a new Reader from the Path provided.
+    // Opens a new BufferedReader and BufferedWriter (with Append mode) to the file.
+    // If the file doesn't exist, it is created.
     pub fn new(apath: Path) -> Reader {
         Reader {
             path: {
@@ -63,6 +71,8 @@ impl Reader {
         }
     }
 
+    // This is a helder function that realistically shouldn't exist in production.
+    // Used primarily for "spilling" the entire database file into a Vec<String>
     fn spill(&mut self) -> Vec<String> {
         let mut result: Vec<String> = Vec::new();
         for line_iter in self.read_buffer.lines() {
@@ -73,11 +83,15 @@ impl Reader {
         return result;
     }
 
+    // Inserts a &str into the database.
+    #[warn(experimental)]
     fn insert_str(&mut self, item: &str) {
         self.write_buffer.write_line(item);
         self.write_buffer.flush();
     }
 
+    // Inserts a byte array into the database.
+    #[warn(experimental)]
     fn insert(&mut self, item: &[u8]) {
         self.write_buffer.write(item);
         self.write_buffer.flush();
@@ -172,11 +186,16 @@ fn test_decode_string() {
     assert_eq![expected, result];
 }
 
+// Test setup code. Current functions:
+//  - Create a new file 'tests/base-test.txt'
+//  - Write a 2x2 matrix of records into the base-test.txt file
+//  - If 'tests/base-test-created.txt' is created, delete it
+//  - Returns a Reader object to 'tests/base-test.txt'
 #[allow(dead_code, unused_must_use)]
 fn setup() -> Reader {
     use std::io::fs;
 
-    let mut file = File::create(&Path::new("tests/base-test.txt")).ok().expect("fooo");
+    let mut file = File::create(&Path::new("tests/base-test.txt")).ok().expect("Unable to create test file");
     file.write_str("10 11\n20 21\n");
 
     let p = Path::new("tests/base-test-created.txt");

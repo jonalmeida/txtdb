@@ -1,5 +1,3 @@
-pub mod reader;
+mod reader;
+mod factory;
 
-#[test]
-fn it_works() {
-}

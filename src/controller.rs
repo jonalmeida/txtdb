@@ -72,14 +72,12 @@ impl Reader {
     }
 
     // Inserts a &str into the database.
-    #[warn(experimental)]
     fn insert_str(&mut self, item: &str) {
         self.write_buffer.write_line(item);
         self.write_buffer.flush();
     }
 
     // Inserts a byte array into the database.
-    #[warn(experimental)]
     fn insert(&mut self, item: &[u8]) {
         self.write_buffer.write(item);
         self.write_buffer.flush();

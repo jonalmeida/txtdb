@@ -1,12 +1,13 @@
 
 // Each line in the database file is a 'Record' that contains the following data to be read
 // and serialized.
-struct Record {
+pub struct Record {
     // Unique (?) id given to each record.
     id: u64,
     // The payload of each record that is Base64 encoded and JSON serialized.
     payload: String,
-    // Any necessary metedata needed to identify the record. TODO Base64 encoded and JSON encoded?
+    // Any necessary metedata needed to identify the record.
+    // TODO Base64 encoded and JSON encoded?
     metadata: String,
 }
 
@@ -17,8 +18,9 @@ pub trait RecordFactory {
     fn create(data: String) -> RecordResult<String, String>;
 }
 
+#[allow(dead_code, unused_must_use, unused_variables)]
 fn create(data: String) -> RecordResult<String, String> {
-    Ok("all guuuud".to_string())
+    Err("Not implemented yet.".to_string())
 }
 
 #[test]

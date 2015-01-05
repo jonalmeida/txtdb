@@ -1,3 +1,3 @@
-mod reader;
+mod controller;
 mod factory;
 

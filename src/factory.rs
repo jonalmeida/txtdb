@@ -38,5 +38,15 @@ fn create(data: String) -> RecordResult<Record, String> {
 
 #[test]
 fn test_create_record() {
-    create("foo".to_string());
+    let input = String::from_str("1 payload metadata");
+    let id_: u64 = 1;
+    let expected = Record {
+        id: id_,
+        payload: String::from_str("payload"),
+        metadata: String::from_str("metadata"),
+    };
+    let output: Record = create(input).ok().expect("Parsing failed.");
+    assert_eq!(expected.id, output.id);
+    assert_eq!(expected.payload, output.payload);
+    assert_eq!(expected.metadata, output.metadata);
 }

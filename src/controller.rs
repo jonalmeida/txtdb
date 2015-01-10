@@ -89,7 +89,7 @@ impl ReaderFile for Reader {
 
     fn open(&self) -> Box<File> {
         match File::open_mode(&self.path, Open, ReadWrite) {
-            Ok(file)    => box file,
+            Ok(file)    => Box::new(file),
             Err(..)     => { panic!("File {} couldn't be opened!", &self.path.display()); },
         }
     }

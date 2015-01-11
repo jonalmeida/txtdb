@@ -83,6 +83,14 @@ impl Reader {
         self.write_buffer.flush();
     }
 
+    // Read a &str from the database
+    fn read_line(&mut self) -> String {
+        match self.read_buffer.read_line() {
+            Ok(string)  => { string.to_string() },
+            Err(..)     => { panic!("Unable to read next line. BufferedReader error."); },
+        }
+    }
+
 }
 
 impl ReaderFile for Reader {

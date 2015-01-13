@@ -1,5 +1,10 @@
 // Any utility functions that are misc can go here
 
+extern crate serialize;
+
+use std::path::BytesContainer;
+use self::serialize::base64::{STANDARD, FromBase64, ToBase64};
+
 pub fn string_slice(original: String) -> Vec<String> {
     let vec_of_str: Vec<&str> = original.as_slice().split(' ').collect();
     let mut vec_of_string: Vec<String> = Vec::new();
@@ -7,6 +12,25 @@ pub fn string_slice(original: String) -> Vec<String> {
         vec_of_string.push(x.to_string());
     }
     return vec_of_string;
+}
+
+// Encodes a record to Base64 (with standard encoding).
+pub fn encode_record(item: String) -> String {
+    item.container_as_bytes().to_base64(STANDARD)
+}
+
+// Decoes a record from Base64.
+//TODO Maybe change this to JSON later?
+pub fn decode_record(item: String) -> String {
+    match item.as_slice().from_base64() {
+        Ok(vec) => {
+            match String::from_utf8(vec) {
+                Ok(e)       => e,
+                Err(..)  => panic!("Invalid UTF-8 sequence."),
+            }
+        }
+        Err(..) => panic!("Corrupt data, unable to decode."),
+    }
 }
 
 #[test]
@@ -17,4 +41,20 @@ fn test_string_slice() {
     let output = string_slice(input);
 
     assert_eq!(expected, output);
+}
+
+#[test]
+fn test_encode_string() {
+    use utils;
+    let expected = "dGhpcyBpcyBhIGxpbmU=";
+    let result = utils::encode_record("this is a line".to_string());
+    assert_eq![expected, result];
+}
+
+#[test]
+fn test_decode_string() {
+    use utils;
+    let expected = "this is a line";
+    let result = utils::decode_record("dGhpcyBpcyBhIGxpbmU=".to_string());
+    assert_eq![expected, result];
 }

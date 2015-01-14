@@ -84,7 +84,7 @@ fn test_create_record() {
         payload: String::from_str("payload"),
         metadata: String::from_str("metadata"),
     };
-    let reader = Reader::new(Path::new("tests/base-test.txt"));
+    let reader = Reader::new(&Path::new("tests/base-test.txt"));
     let factory: Factory = RecordFactory::new(reader);
     let output: Record = factory.create(input).ok().expect("Parsing failed.");
     assert_eq!(expected.id, output.id);
@@ -100,7 +100,7 @@ fn test_create_from_encoded() {
         payload: String::from_str("payload"),
         metadata: String::from_str("metadata"),
     };
-    let reader = Reader::new(Path::new("tests/base-test.txt"));
+    let reader = Reader::new(&Path::new("tests/base-test.txt"));
     let factory: Factory = RecordFactory::new(reader);
     let output: Record = factory.create_from_enc(input).ok().expect("Parsing failed.");
     assert_eq!(expected.id, output.id);

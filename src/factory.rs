@@ -6,12 +6,12 @@ use utils;
 // and serialized.
 pub struct Record {
     // Unique (?) id given to each record.
-    id: u64,
+    pub id: u64,
     // The payload of each record that is Base64 encoded and JSON serialized.
-    payload: String,
+    pub payload: String,
     // Any necessary metedata needed to identify the record.
     // TODO Base64 encoded and JSON encoded?
-    metadata: String,
+    pub metadata: String,
 }
 
 pub struct Factory {

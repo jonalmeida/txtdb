@@ -43,13 +43,17 @@ impl Reader {
             read_buffer: {
                 match File::open_mode(&apath.clone(), Open, Read) {
                     Ok(file)    => { BufferedReader::new(file) },
-                    Err(..)     => { panic!("Failed to create a read buffer to file path: {}", apath.display()) }
+                    Err(..)     => {
+                        panic!("Failed to create a read buffer to file path: {}", apath.display())
+                    }
                 }
             },
             write_buffer: {
                 match File::open_mode(&apath.clone(), Append, ReadWrite) {
                     Ok(file)    => { BufferedWriter::new(file) },
-                    Err(..)     => { panic!("Failed to create a write buffer to file path: {}", apath.display()) }
+                    Err(..)     => {
+                        panic!("Failed to create a write buffer to file path: {}", apath.display())
+                    }
                 }
             }
         }

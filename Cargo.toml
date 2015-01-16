@@ -3,3 +3,12 @@
 name = "txtdb"
 version = "0.0.1"
 authors = ["Jonathan Almeida <me@jonalmeida.com>"]
+description = "A simple database system written in Rust."
+documentation = "https://github.com/jonalmeida/txtdb/wiki"
+homepage = "https://github.com/jonalmeida/txtdb"
+repository = "https://github.com/jonalmeida/txtdb"
+readme = "README.md"
+license = "MIT"
+
+[lib]
+name = "txtdb"

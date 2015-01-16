@@ -36,8 +36,6 @@ impl RecordFactory for Factory {
         }
     }
 
-    //TODO Remove the below flag when `create` is used
-    #[allow(dead_code, unused_must_use, unused_variables)]
     fn create(&self, data: String) -> RecordResult<Record, String> {
         let vec_of_data = utils::string_slice(data);
 

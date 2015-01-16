@@ -34,6 +34,7 @@ impl Reader {
     /// Creates a new Reader from the Path provided.
     /// Opens a new BufferedReader and BufferedWriter (with Append mode) to the file.
     /// If the file doesn't exist, it is created.
+    // TODO, create a .lock file to let other readers know the database is in use (see: #2).
     pub fn new(apath: &Path) -> Reader {
         Reader {
             path: {

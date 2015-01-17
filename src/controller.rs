@@ -90,6 +90,21 @@ impl Reader {
         }
     }
 
+    fn file_lock_created(&self) -> bool {
+        use std::str;
+        let mut filelock_path = self.path.clone();
+
+        // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
+        let mut filename_lock: String = str::from_utf8(self.path.filename().unwrap()).unwrap().to_string();
+        filename_lock.push_str(".lock");
+        filelock_path = filelock_path.join(filename_lock);
+
+        match File::create(&filelock_path) {
+            Ok(..)  => true,
+            Err(..) => false,
+        }
+    }
+
 }
 
 impl ReaderFile for Reader {

@@ -36,6 +36,7 @@ impl Reader {
     /// If the file doesn't exist, it is created.
     // TODO, create a .lock file to let other readers know the database is in use (see: #2).
     pub fn new(apath: &Path) -> Reader {
+        Reader::file_lock_create(apath);
         Reader {
             path: {
                 if !apath.exists() { File::create(&apath.clone()); }
@@ -90,19 +91,33 @@ impl Reader {
         }
     }
 
-    fn file_lock_created(&self) -> bool {
+    fn file_lock_create(lockpath: &Path) -> (bool, Path) {
         use std::str;
-        let mut filelock_path = self.path.clone();
 
-        // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
-        let mut filename_lock: String = str::from_utf8(self.path.filename().unwrap()).unwrap().to_string();
-        filename_lock.push_str(".lock");
-        filelock_path = filelock_path.join(filename_lock);
-
-        match File::create(&filelock_path) {
-            Ok(..)  => true,
-            Err(..) => false,
+        if lockpath.exists() {
+            return (true, lockpath.clone())
         }
+
+        let mut filelock_path = lockpath.clone();
+
+        // Remove the old name
+        filelock_path.pop();
+        // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
+        let mut filename_lock: String = str::from_utf8(lockpath.filename().unwrap()).unwrap().to_string();
+        filename_lock.push_str(".lock");
+        // Join the new filename with the path
+        filelock_path = filelock_path.join(filename_lock);
+        println!("{}", filelock_path.display());
+        match File::create(&filelock_path) {
+            Ok(..)  => (true, filelock_path),
+            Err(..) => (false, filelock_path),
+        }
+    }
+
+    fn file_lock_remove(&self, filelock: &Path) -> bool {
+        use std::io::fs;
+        fs::unlink(&filelock.clone());
+        filelock.exists()
     }
 
 }
@@ -135,7 +150,11 @@ fn test_create_file() {
     let mut path_str = String::from_str("tests/");
     path_str.push_str(rand::random::<usize>().to_string().as_slice());
     path_str.push_str(".txt");
-    let path = Path::new(path_str);
+
+    let (tempdir, apath) = setup();
+    let path = tempdir.path().join(rand::random::<usize>().to_string());
+
+    //let path = Path::new(path_str);
     assert!(!path.exists());
     let reader = Reader::new(&path.clone());
     assert!(path.exists());
@@ -175,17 +194,17 @@ fn test_file_path_lock() {
     use std::str;
 
     let (tempdir, path) = setup();
+
     let mut expected = path.clone();
     expected.pop();
 
     // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
     let mut filename_lock: String = str::from_utf8(path.filename().unwrap()).unwrap().to_string();
     filename_lock.push_str(".lock");
-    let expected_filelock_path = expected.join(filename_lock);
+    expected = expected.join(filename_lock);
 
-    let reader = Reader::new(&path);
-
-    assert!(expected_filelock_path.exists() && expected_filelock_path.is_file());
+    let reader = Reader::new(&expected.clone());
+    assert!(expected.exists() && expected.is_file());
 }
 
 /// Test setup code. Current functions:

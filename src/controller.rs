@@ -155,6 +155,24 @@ fn test_write_str_to_file() {
     assert_eq![expected, reader.spill()];
 }
 
+#[test]
+fn test_file_path_lock() {
+    use std::str;
+
+    let (tempdir, path) = setup();
+    let mut expected = path.clone();
+    expected.pop();
+
+    // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
+    let mut filename_lock: String = str::from_utf8(path.filename().unwrap()).unwrap().to_string();
+    filename_lock.push_str(".lock");
+    let expected_filelock_path = expected.join(filename_lock);
+
+    let reader = Reader::new(&path);
+
+    assert!(expected_filelock_path.exists() && expected_filelock_path.is_file());
+}
+
 /// Test setup code. Current functions:
 /// - Create a new file with `TempDir` and a random name.
 /// - Write a 2x2 matrix of records into the base-test.txt file

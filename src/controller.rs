@@ -1,11 +1,11 @@
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 
 use std::io::{File, Open, Append, Read, ReadWrite};
 use std::io::TempDir;
 use std::io::fs::PathExtensions;
 use std::io::{BufferedReader, BufferedWriter};
 use std::path::BytesContainer;
-use self::serialize::base64::{STANDARD, FromBase64, ToBase64};
+use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 
 /// A result type that's specfici to the Reader module.
 /// TODO Decide if this is necessary

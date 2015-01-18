@@ -12,3 +12,7 @@ license = "MIT"
 
 [lib]
 name = "txtdb"
+
+[dependencies]
+
+rustc-serialize = "0.2.8"

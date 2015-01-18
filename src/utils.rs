@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_must_use, unused_imports, unstable)]
 // Any utility functions that are misc can go here
 
 extern crate serialize;

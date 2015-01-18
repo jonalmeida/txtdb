@@ -1,3 +1,4 @@
+//#![allow(dead_code, unused_must_use, unused_imports, unstable)]
 use factory::{Record, RecordResult};
 use std::string::ToString;
 use std::io::IoError;

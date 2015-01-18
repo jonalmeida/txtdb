@@ -1,3 +1,5 @@
+#![allow(dead_code, unused_must_use, unused_imports, unstable)]
+
 extern crate "rustc-serialize" as rustc_serialize;
 
 use std::io::{File, Open, Append, Read, ReadWrite};

@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_must_use, unused_imports, unstable)]
 use std::str::FromStr;
 use controller::Reader;
 use utils;

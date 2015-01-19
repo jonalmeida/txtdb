@@ -2,6 +2,8 @@
 
 extern crate "rustc-serialize" as rustc_serialize;
 
+use std::fmt;
+use std::string;
 use std::io::{File, Open, Append, Read, ReadWrite};
 use std::io::TempDir;
 use std::io::fs::PathExtensions;
@@ -30,6 +32,18 @@ pub trait ReaderFile {
     fn open(&self) -> Box<File>;
     // Inserts a string to the database.
     fn insert_string(&mut self, String);
+}
+
+impl fmt::Show for Reader {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Reader: ( path: {} )", self.path.display())
+    }
+}
+
+impl ToString for Reader {
+    fn to_string(&self) -> String {
+        format!("{:?}", self)
+    }
 }
 
 impl Reader {
@@ -207,6 +221,12 @@ fn test_file_path_lock() {
 
     let reader = Reader::new(&expected.clone());
     assert!(expected.exists() && expected.is_file());
+}
+
+#[test]
+fn test_reader_show() {
+    let reader: Reader = Reader::new(&Path::new("./tests/file.txt"));
+    assert_eq!("Reader: ( path: tests/file.txt )", reader.to_string());
 }
 
 /// Test setup code. Current functions:

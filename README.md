@@ -1,6 +1,6 @@
 # txtdb
 
-[![Build Status](https://travis-ci.org/jonalmeida/txtdb.png?branch=master)](https://travis-ci.org/jonalmeida/txtdb)
+[![Build Status](https://travis-ci.org/jonalmeida/txtdb.svg?branch=master)](https://travis-ci.org/jonalmeida/txtdb)
 
 A simple database system written in Rust
 

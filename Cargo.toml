@@ -16,3 +16,4 @@ name = "txtdb"
 [dependencies]
 
 rustc-serialize = "0.2.8"
+log = "0.1.9"

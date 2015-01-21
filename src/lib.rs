@@ -1,4 +1,7 @@
 //#![allow(dead_code, unused_must_use, unused_imports, unstable)]
+
+#[macro_use] extern crate log;
+
 use factory::{Record, RecordResult};
 use std::string::ToString;
 use std::io::IoError;

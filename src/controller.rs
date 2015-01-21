@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_must_use, unused_imports, unstable)]
 
 extern crate "rustc-serialize" as rustc_serialize;
+extern crate log;
 
 use std::fmt;
 use std::string;
@@ -103,7 +104,10 @@ impl Reader {
     fn read_line(&mut self) -> String {
         match self.read_buffer.read_line() {
             Ok(string)  => { string.to_string() },
-            Err(..)     => { panic!("Unable to read next line. BufferedReader error."); },
+            Err(..)     => {
+                error!("Unable to read next line. BufferedReader error.");
+                "".to_string()
+            },
         }
     }
 
@@ -243,7 +247,7 @@ fn setup() -> (TempDir, Path) {
 
     let tmpdir = match TempDir::new("txtdb-tests") {
         Ok(dir) => dir,
-        Err(..) => panic!("Unable to create test dir in temporary directory."),
+        Err(..) => panic!("Cannot create test directory. Tests will fail."),
     };
 
     let final_dir = tmpdir.path().join(rand::random::<usize>().to_string());

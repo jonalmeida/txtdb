@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_must_use, unused_imports, unstable)]
 // Any utility functions that are misc can go here
 
+extern crate log;
 extern crate serialize;
 
 use std::path::BytesContainer;
@@ -26,11 +27,17 @@ pub fn decode_record(item: String) -> String {
     match item.as_slice().from_base64() {
         Ok(vec) => {
             match String::from_utf8(vec) {
-                Ok(e)       => e,
-                Err(..)  => panic!("Invalid UTF-8 sequence."),
+                Ok(string)  => string,
+                Err(..)     => {
+                    error!("Invalid UTF-8 sequence.");
+                    "".to_string()
+                },
             }
         }
-        Err(..) => panic!("Corrupt data, unable to decode."),
+        Err(..) => {
+            error!("Corrupt data, unable to decode.");
+            "".to_string()
+        },
     }
 }
 

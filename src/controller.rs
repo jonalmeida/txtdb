@@ -4,9 +4,11 @@ extern crate "rustc-serialize" as rustc_serialize;
 extern crate log;
 
 use std::fmt;
+use std::str;
 use std::string;
 use std::io::{File, Open, Append, Read, ReadWrite};
 use std::io::TempDir;
+use std::io::fs;
 use std::io::fs::PathExtensions;
 use std::io::{BufferedReader, BufferedWriter};
 use std::path::BytesContainer;
@@ -112,7 +114,6 @@ impl Reader {
     }
 
     fn file_lock_create(lockpath: &Path) -> (bool, Path) {
-        use std::str;
 
         if lockpath.exists() {
             return (true, lockpath.clone())
@@ -135,7 +136,6 @@ impl Reader {
     }
 
     fn file_lock_remove(&self, filelock: &Path) -> bool {
-        use std::io::fs;
         fs::unlink(&filelock.clone());
         filelock.exists()
     }
@@ -164,8 +164,6 @@ fn test_open_file() {
 
 #[test]
 fn test_create_file() {
-    use std::io::fs;
-    use std::io::fs::PathExtensions;
     use std::rand;
     let mut path_str = String::from_str("tests/");
     path_str.push_str(rand::random::<usize>().to_string().as_slice());
@@ -211,7 +209,6 @@ fn test_write_str_to_file() {
 
 #[test]
 fn test_file_path_lock() {
-    use std::str;
 
     let (tempdir, path) = setup();
 
@@ -242,8 +239,6 @@ fn test_reader_show() {
 #[allow(dead_code, unused_must_use)]
 fn setup() -> (TempDir, Path) {
     use std::rand;
-    use std::io::fs;
-    use std::io::TempDir;
 
     let tmpdir = match TempDir::new("txtdb-tests") {
         Ok(dir) => dir,

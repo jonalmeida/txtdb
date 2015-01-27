@@ -2,10 +2,10 @@
 // Any utility functions that are misc can go here
 
 extern crate log;
-extern crate serialize;
+extern crate "rustc-serialize" as rustc_serialize;
 
 use std::path::BytesContainer;
-use self::serialize::base64::{STANDARD, FromBase64, ToBase64};
+use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 
 pub fn string_slice(original: String) -> Vec<String> {
     let vec_of_str: Vec<&str> = original.as_slice().split(' ').collect();

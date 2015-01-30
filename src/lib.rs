@@ -4,7 +4,7 @@
 
 use factory::{Record, RecordResult};
 use std::string::ToString;
-use std::io::IoError;
+use std::old_io::IoError;
 
 pub mod controller;
 pub mod factory;

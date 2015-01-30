@@ -6,11 +6,11 @@ extern crate log;
 use std::fmt;
 use std::str;
 use std::string;
-use std::io::{File, Open, Append, Read, ReadWrite};
-use std::io::TempDir;
-use std::io::fs;
-use std::io::fs::PathExtensions;
-use std::io::{BufferedReader, BufferedWriter};
+use std::old_io::{File, Open, Append, Read, ReadWrite};
+use std::old_io::TempDir;
+use std::old_io::fs;
+use std::old_io::fs::PathExtensions;
+use std::old_io::{BufferedReader, BufferedWriter};
 use std::path::BytesContainer;
 use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 

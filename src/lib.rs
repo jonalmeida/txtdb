@@ -32,14 +32,14 @@ impl Txtdb {
     /// Returns a `RecordResult` of the record removed.
     #[allow(dead_code, unused_must_use, unused_variables)]
     fn remove_id(&mut self, id: u64) -> RecordResult<Record, String> {
-        Err("Not implemented yet")
+        Err("Not implemented yet".to_string())
     }
 
     /// Finds and removes the first instance of a record that matches the one provided.
     /// Returns the id of the record it removes.
     #[allow(dead_code, unused_must_use, unused_variables)]
     fn remove(&mut self, record: Record) -> RecordResult<u64, String> {
-        Err("Not implemented yet")
+        Err("Not implemented yet".to_string())
     }
 
     /// Searches for a record with the id provided.
@@ -49,7 +49,7 @@ impl Txtdb {
         // 1. Read each line?
         // 2. Check if the ID matches
         // 3. Return
-        Err("Not implemented yet")
+        Err("Not implemented yet".to_string())
     }
 
     /// Searches for the first instance of a record that matches the one provided.
@@ -62,6 +62,6 @@ impl Txtdb {
         // 1. Base64 encode the Record
         // 2. Read each line to find the match encoded value
         // 3. Return id
-        Err("Not implemented yet")
+        Err("Not implemented yet".to_string())
     }
 }

@@ -1,5 +1,9 @@
 //#![allow(dead_code, unused_must_use, unused_imports, unstable)]
 
+// Temporary warning removal until old_io is updated et al.
+#![feature(io, collections, core)]
+
+
 #[macro_use] extern crate log;
 
 use factory::{Record, RecordResult};

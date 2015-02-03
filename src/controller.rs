@@ -37,7 +37,7 @@ pub trait ReaderFile {
     fn insert_string(&mut self, String);
 }
 
-impl fmt::Show for Reader {
+impl fmt::Debug for Reader {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Reader: ( path: {} )", self.path.display())
     }

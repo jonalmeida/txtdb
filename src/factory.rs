@@ -42,8 +42,8 @@ impl RecordFactory for Factory {
 
         let id_num = FromStr::from_str(vec_of_data[0].as_slice());
         let id_value: u64 = match id_num {
-            Some(value)     => value,
-            None            => -1 // This is a failure value
+            Ok(value)       => value,
+            Err(..)         => -1 // This is a failure value
         };
 
         Ok(Record {
@@ -58,8 +58,8 @@ impl RecordFactory for Factory {
 
         let id_num = FromStr::from_str(vec_of_data[0].as_slice());
         let id_value: u64 = match id_num {
-            Some(value)     => value,
-            None            => -1, // This is a failure value
+            Ok(value)     => value,
+            Err(..)       => -1, // This is a failure value
         };
 
         let enc_payload = String::from_str(vec_of_data[1].as_slice());

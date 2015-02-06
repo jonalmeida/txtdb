@@ -11,7 +11,7 @@ use std::old_io::TempDir;
 use std::old_io::fs;
 use std::old_io::fs::PathExtensions;
 use std::old_io::{BufferedReader, BufferedWriter};
-use std::path::BytesContainer;
+use std::old_path::BytesContainer;
 use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 
 /// A result type that's specfici to the Reader module.

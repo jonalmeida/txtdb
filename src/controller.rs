@@ -152,7 +152,7 @@ impl ReaderFile for Reader {
     }
 
     fn insert_string(&mut self, item: String) {
-        self.insert_str(item.as_slice());
+        self.insert_str(&*item);
     }
 
 }
@@ -166,7 +166,7 @@ fn test_open_file() {
 fn test_create_file() {
     use std::rand;
     let mut path_str = String::from_str("tests/");
-    path_str.push_str(rand::random::<usize>().to_string().as_slice());
+    path_str.push_str(&*rand::random::<usize>().to_string());
     path_str.push_str(".txt");
 
     let (tempdir, apath) = setup();

@@ -8,7 +8,7 @@ use std::old_path::BytesContainer;
 use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 
 pub fn string_slice(original: String) -> Vec<String> {
-    let vec_of_str: Vec<&str> = original.as_slice().split(' ').collect();
+    let vec_of_str: Vec<&str> = (&*original).split(' ').collect();
     let mut vec_of_string: Vec<String> = Vec::new();
     for x in vec_of_str.iter() {
         vec_of_string.push(x.to_string());
@@ -24,7 +24,7 @@ pub fn encode_record(item: String) -> String {
 // Decoes a record from Base64.
 //TODO Maybe change this to JSON later?
 pub fn decode_record(item: String) -> String {
-    match item.as_slice().from_base64() {
+    match (&*item).from_base64() {
         Ok(vec) => {
             match String::from_utf8(vec) {
                 Ok(string)  => string,

@@ -40,7 +40,7 @@ impl RecordFactory for Factory {
     fn create(&self, data: String) -> RecordResult<Record, String> {
         let vec_of_data = utils::string_slice(data);
 
-        let id_num = FromStr::from_str(vec_of_data[0].as_slice());
+        let id_num = FromStr::from_str(&*vec_of_data[0]);
         let id_value: u64 = match id_num {
             Ok(value)       => value,
             Err(..)         => -1 // This is a failure value
@@ -56,15 +56,15 @@ impl RecordFactory for Factory {
     fn create_from_enc(&self, data: String) -> RecordResult<Record, String> {
         let vec_of_data = utils::string_slice(data);
 
-        let id_num = FromStr::from_str(vec_of_data[0].as_slice());
+        let id_num = FromStr::from_str(&*vec_of_data[0]);
         let id_value: u64 = match id_num {
             Ok(value)     => value,
             Err(..)       => -1, // This is a failure value
         };
 
-        let enc_payload = String::from_str(vec_of_data[1].as_slice());
+        let enc_payload = String::from_str(&*vec_of_data[1]);
         let payload = utils::decode_record(enc_payload);
-        let enc_metadata = String::from_str(vec_of_data[2].as_slice());
+        let enc_metadata = String::from_str(&*vec_of_data[2]);
         let metadata = utils::decode_record(enc_metadata);
 
         Ok(Record {

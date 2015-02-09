@@ -32,7 +32,7 @@ pub struct Reader {
 pub trait ReaderFile {
     // Opens a new File to the Path provided.
     // Returns a boxed File.
-    fn open(&self) -> Box<File>;
+    fn open(&self) -> File;
     // Inserts a string to the database.
     fn insert_string(&mut self, String);
 }
@@ -144,9 +144,9 @@ impl Reader {
 
 impl ReaderFile for Reader {
 
-    fn open(&self) -> Box<File> {
+    fn open(&self) -> File {
         match File::open_mode(&self.path, Open, ReadWrite) {
-            Ok(file)    => Box::new(file),
+            Ok(file)    => file,
             Err(..)     => { panic!("File {} couldn't be opened!", &self.path.display()); },
         }
     }

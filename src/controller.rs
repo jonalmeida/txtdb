@@ -3,6 +3,7 @@
 extern crate "rustc-serialize" as rustc_serialize;
 extern crate log;
 
+use utils;
 use std::fmt;
 use std::str;
 use std::string;
@@ -26,6 +27,8 @@ pub struct Reader {
     read_buffer: BufferedReader<File>,
     /// BufferedWriter for writing to the file. Initialized with the Path.
     write_buffer: BufferedWriter<File>,
+    /// Index counter to know how many records exist.
+    id_count: u64,
 }
 
 /// ReaderFile traits
@@ -56,27 +59,41 @@ impl Reader {
     // TODO, create a .lock file to let other readers know the database is in use (see: #2).
     pub fn new(apath: &Path) -> Reader {
         Reader::file_lock_create(apath);
+        // if file_lock exists, panic and crash with appropriate error.
+        // Error: A .lock file already exists, if this is from a previous session, consider
+        // deleting the .lock file.
+
+        if !apath.exists() { File::create(&apath.clone()); }
+
+        let mut buffer_reader = match File::open_mode(&apath.clone(), Open, Read) {
+                                    Ok(file)    => BufferedReader::new(file),
+                                    Err(..)     => panic!("Failed to create a read buffer to file path: {}",
+                                                            apath.display()),
+                                };
+
+        let current_record_count = match buffer_reader.read_line() {
+                                                Ok(line)    => {
+                                                    let first_line = utils::string_slice(line);
+                                                    let input = first_line[0].parse::<u64>();
+                                                    match input {
+                                                        Ok(num) => num,
+                                                        Err(..) => 0,
+                                                    }
+                                                },
+                                                Err(..) => 0,
+                                    };
+
         Reader {
-            path: {
-                if !apath.exists() { File::create(&apath.clone()); }
-                apath.clone()
-            },
-            read_buffer: {
-                match File::open_mode(&apath.clone(), Open, Read) {
-                    Ok(file)    => { BufferedReader::new(file) },
-                    Err(..)     => {
-                        panic!("Failed to create a read buffer to file path: {}", apath.display())
-                    }
-                }
-            },
+            path: apath.clone(),
+            read_buffer: buffer_reader,
             write_buffer: {
                 match File::open_mode(&apath.clone(), Append, ReadWrite) {
                     Ok(file)    => { BufferedWriter::new(file) },
-                    Err(..)     => {
-                        panic!("Failed to create a write buffer to file path: {}", apath.display())
-                    }
+                    Err(..)     => { panic!("Failed to create a write buffer to file path: {}",
+                                            apath.display()) },
                 }
-            }
+            },
+            id_count: current_record_count,
         }
     }
 

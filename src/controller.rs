@@ -63,7 +63,17 @@ impl Reader {
         // Error: A .lock file already exists, if this is from a previous session, consider
         // deleting the .lock file.
 
-        if !apath.exists() { File::create(&apath.clone()); }
+        if !apath.exists() {
+            let mut file = File::create(&apath.clone());
+            file.write_line("0");
+            file.flush();
+        }
+
+        let mut buffer_writer = match File::open_mode(&apath.clone(), Append, ReadWrite) {
+                                    Ok(file)    => { BufferedWriter::new(file) },
+                                    Err(..)     => { panic!("Failed to create a write buffer to file path: {}",
+                                                            apath.display()) },
+                                };
 
         let mut buffer_reader = match File::open_mode(&apath.clone(), Open, Read) {
                                     Ok(file)    => BufferedReader::new(file),
@@ -86,13 +96,7 @@ impl Reader {
         Reader {
             path: apath.clone(),
             read_buffer: buffer_reader,
-            write_buffer: {
-                match File::open_mode(&apath.clone(), Append, ReadWrite) {
-                    Ok(file)    => { BufferedWriter::new(file) },
-                    Err(..)     => { panic!("Failed to create a write buffer to file path: {}",
-                                            apath.display()) },
-                }
-            },
+            write_buffer: buffer_writer,
             id_count: current_record_count,
         }
     }
@@ -101,7 +105,8 @@ impl Reader {
     /// Used primarily for "spilling" the entire database file into a Vec<String>
     fn spill(&mut self) -> Vec<String> {
         let mut result: Vec<String> = Vec::new();
-        for line_iter in self.read_buffer.lines() {
+        let mut buffer_reader = BufferedReader::new(File::open(&self.path.clone()));
+        for line_iter in buffer_reader.lines() {
             result.push(line_iter.unwrap().trim().to_string());
         }
         return result;

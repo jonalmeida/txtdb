@@ -86,18 +86,20 @@ impl Reader {
         let current_record_count = match buffer_reader.read_line() {
                                         Ok(line)    => {
                                             let first_line = utils::string_slice(line);
-                                            println!("This is our line read in: {:?}", first_line);
                                             let input = first_line[0].trim().parse::<u64>();
                                             match input {
                                                 Ok(num) => num,
                                                 Err(..) => {
-                                                    println!("We're getting nothing sarge!");
-                                                    0},
+                                                    warn!("We can't parse the record count from metadata");
+                                                    warn!("Our parsed db metadata: {:?}", first_line);
+                                                    // Setting counter to zero because we can't do
+                                                    // anything else.
+                                                    0
+                                                },
                                             }
                                         },
                                         Err(..) => {
-                                            println!("Can't read a line!");
-                                            0
+                                            panic!("Can't read database metadata! Everybody do the flop!");
                                         },
                                    };
 
@@ -147,6 +149,8 @@ impl Reader {
         }
     }
 
+    /// Creates a .lock file to let other processes know that the database is in use.
+    /// This is still unfinished and should be considered broken.
     fn file_lock_create(lockpath: &Path) -> (bool, Path) {
         if lockpath.exists() {
             return (true, lockpath.clone())
@@ -168,11 +172,13 @@ impl Reader {
         }
     }
 
+    /// Removes .lock file when the reader process is completed.
     fn file_lock_remove(&self, filelock: &Path) -> bool {
         fs::unlink(&filelock.clone());
         filelock.exists()
     }
 
+    /// Updates database counter on disk.
     fn update_counter(&self, value: u64) {
         let file = File::open_mode(&self.path.clone(), Open, Write);
         let mut buffer_writer = BufferedWriter::new(file);

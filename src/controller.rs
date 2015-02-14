@@ -7,7 +7,7 @@ use utils;
 use std::fmt;
 use std::str;
 use std::string;
-use std::old_io::{File, Open, Append, Read, ReadWrite};
+use std::old_io::{File, Open, Append, Read, Write, ReadWrite};
 use std::old_io::TempDir;
 use std::old_io::fs;
 use std::old_io::fs::PathExtensions;
@@ -71,8 +71,10 @@ impl Reader {
 
         let mut buffer_writer = match File::open_mode(&apath.clone(), Append, ReadWrite) {
                                     Ok(file)    => { BufferedWriter::new(file) },
-                                    Err(..)     => { panic!("Failed to create a write buffer to file path: {}",
-                                                            apath.display()) },
+                                    Err(..)     => {
+                                        panic!("Failed to create a write buffer to file path: {}",
+                                                apath.display())
+                                    },
                                 };
 
         let mut buffer_reader = match File::open_mode(&apath.clone(), Open, Read) {
@@ -82,16 +84,22 @@ impl Reader {
                                 };
 
         let current_record_count = match buffer_reader.read_line() {
-                                                Ok(line)    => {
-                                                    let first_line = utils::string_slice(line);
-                                                    let input = first_line[0].parse::<u64>();
-                                                    match input {
-                                                        Ok(num) => num,
-                                                        Err(..) => 0,
-                                                    }
-                                                },
-                                                Err(..) => 0,
-                                    };
+                                        Ok(line)    => {
+                                            let first_line = utils::string_slice(line);
+                                            println!("This is our line read in: {:?}", first_line);
+                                            let input = first_line[0].trim().parse::<u64>();
+                                            match input {
+                                                Ok(num) => num,
+                                                Err(..) => {
+                                                    println!("We're getting nothing sarge!");
+                                                    0},
+                                            }
+                                        },
+                                        Err(..) => {
+                                            println!("Can't read a line!");
+                                            0
+                                        },
+                                   };
 
         Reader {
             path: apath.clone(),
@@ -116,12 +124,16 @@ impl Reader {
     fn insert_str(&mut self, item: &str) {
         self.write_buffer.write_line(item);
         self.write_buffer.flush();
+        self.id_count = self.id_count + 1;
+        self.update_counter(self.id_count);
     }
 
     /// Inserts a byte array into the database.
     fn insert(&mut self, item: &[u8]) {
         self.write_buffer.write(item);
         self.write_buffer.flush();
+        self.id_count = self.id_count + 1;
+        self.update_counter(self.id_count);
     }
 
     /// Read a &str from the database
@@ -136,7 +148,6 @@ impl Reader {
     }
 
     fn file_lock_create(lockpath: &Path) -> (bool, Path) {
-
         if lockpath.exists() {
             return (true, lockpath.clone())
         }
@@ -160,6 +171,13 @@ impl Reader {
     fn file_lock_remove(&self, filelock: &Path) -> bool {
         fs::unlink(&filelock.clone());
         filelock.exists()
+    }
+
+    fn update_counter(&self, value: u64) {
+        let file = File::open_mode(&self.path.clone(), Open, Write);
+        let mut buffer_writer = BufferedWriter::new(file);
+        buffer_writer.write_line(value.to_string().as_slice());
+        buffer_writer.flush();
     }
 
 }

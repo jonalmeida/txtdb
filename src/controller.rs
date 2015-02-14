@@ -99,7 +99,10 @@ impl Reader {
                                             }
                                         },
                                         Err(..) => {
-                                            panic!("Can't read database metadata! Everybody do the flop!");
+                                            error!("Can't read database metadata! Everybody do the flop!");
+                                            // Setting counter to zero because we can't do anything
+                                            // else.
+                                            0
                                         },
                                    };
 
@@ -231,7 +234,7 @@ fn test_read_file() {
     // into standard output.
     let (tempdir, path) = setup();
     let mut reader = Reader::new(&path);
-    let expected = vec!["10 11".to_string(), "20 21".to_string()];
+    let expected = vec!["2".to_string(), "10 11".to_string(), "20 21".to_string()];
     assert_eq!(expected, reader.spill());
 }
 
@@ -239,7 +242,7 @@ fn test_read_file() {
 fn test_write_string_to_file() {
     let (tempdir, path) = setup();
     let mut reader = Reader::new(&path);
-    let expected = vec!["10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
+    let expected = vec!["3".to_string(), "10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
     reader.insert_string("30 31".to_string());
     assert_eq![expected, reader.spill()];
 }
@@ -248,7 +251,7 @@ fn test_write_string_to_file() {
 fn test_write_str_to_file() {
     let (tempdir, path) = setup();
     let mut reader = Reader::new(&path);
-    let expected = vec!["10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
+    let expected = vec!["3".to_string(), "10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
     reader.insert_str("30 31");
     assert_eq![expected, reader.spill()];
 }
@@ -272,7 +275,7 @@ fn test_file_path_lock() {
 
 #[test]
 fn test_reader_show() {
-    let reader: Reader = Reader::new(&Path::new("./tests/file.txt"));
+    let reader: Reader = Reader::new(&Path::new("tests/file.txt"));
     assert_eq!("Reader: ( path: tests/file.txt )", reader.to_string());
 }
 
@@ -294,7 +297,7 @@ fn setup() -> (TempDir, Path) {
     let final_dir = tmpdir.path().join(rand::random::<usize>().to_string());
 
     let mut file = File::create(&final_dir.clone());
-    file.write_str("10 11\n20 21\n");
+    file.write_str("2\n10 11\n20 21\n");
 
     (tmpdir, final_dir)
 }

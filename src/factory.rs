@@ -31,6 +31,7 @@ pub trait RecordFactory {
 }
 
 impl RecordFactory for Factory {
+
     fn new(reader: Reader) -> Factory {
         Factory {
             reader: reader,

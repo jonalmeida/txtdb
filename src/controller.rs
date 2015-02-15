@@ -7,6 +7,7 @@ use utils;
 use std::fmt;
 use std::str;
 use std::string;
+use std::ops::Drop;
 use std::old_io::{File, Open, Append, Read, Write, ReadWrite};
 use std::old_io::TempDir;
 use std::old_io::fs;
@@ -126,7 +127,7 @@ impl Reader {
     }
 
     /// Inserts a &str into the database.
-    fn insert_str(&mut self, item: &str) {
+    pub fn insert_str(&mut self, item: &str) {
         self.write_buffer.write_line(item);
         self.write_buffer.flush();
         self.id_count = self.id_count + 1;
@@ -134,7 +135,7 @@ impl Reader {
     }
 
     /// Inserts a byte array into the database.
-    fn insert(&mut self, item: &[u8]) {
+    pub fn insert(&mut self, item: &[u8]) {
         self.write_buffer.write(item);
         self.write_buffer.flush();
         self.id_count = self.id_count + 1;
@@ -189,6 +190,17 @@ impl Reader {
         buffer_writer.flush();
     }
 
+}
+
+impl Drop for Reader {
+    fn drop(&mut self) {
+        let mut lock_path = self.path.clone();
+        let mut filename = String::from_str(lock_path.filename_str().unwrap());
+        filename.push_str(".lock");
+        lock_path.set_filename(filename);
+        println!("File about to remove: {}", lock_path.display());
+        self.file_lock_remove(&lock_path);
+    }
 }
 
 impl ReaderFile for Reader {

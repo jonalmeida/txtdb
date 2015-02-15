@@ -15,8 +15,8 @@ pub struct Record {
     pub metadata: String,
 }
 
-pub struct Factory {
-    reader: Reader,
+pub struct Factory<'a> {
+    reader: Reader<'a>,
 }
 
 pub type RecordResult<T, E> = Result<T, E>;
@@ -30,7 +30,7 @@ pub trait RecordFactory {
     fn create_from_enc(&self, data: String) -> RecordResult<Record, String>;
 }
 
-impl RecordFactory for Factory {
+impl<'a> RecordFactory for Factory<'a> {
 
     fn new(reader: Reader) -> Factory {
         Factory {

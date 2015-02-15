@@ -14,11 +14,11 @@ pub mod controller;
 pub mod factory;
 mod utils;
 
-struct Txtdb {
-    factory: factory::Factory,
+struct Txtdb<'a> {
+    factory: factory::Factory<'a>,
 }
 
-impl Txtdb {
+impl<'a> Txtdb<'a> {
 
     pub fn new(factory: factory::Factory) -> Txtdb {
         Txtdb {

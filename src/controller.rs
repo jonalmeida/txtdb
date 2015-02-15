@@ -7,12 +7,14 @@ use utils;
 use std::fmt;
 use std::str;
 use std::string;
+use std::path;
+use std::fs::PathExt;
+use std::borrow::BorrowFrom;
 use std::old_io::{File, Open, Append, Read, Write, ReadWrite};
 use std::old_io::TempDir;
 use std::old_io::fs;
 use std::old_io::fs::PathExtensions;
 use std::old_io::{BufferedReader, BufferedWriter};
-use std::old_path::BytesContainer;
 use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 
 /// A result type that's specfici to the Reader module.
@@ -20,9 +22,9 @@ use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 pub type ReaderResult<T, E> = Result<T, E>;
 
 /// Reader struct of its basic properties.
-pub struct Reader {
+pub struct Reader<'a> {
     /// Path to file where the Reader is created.
-    path: Path,
+    path: &'a path::Path,
     /// BufferedReader for reading the file. Initialized with the Path.
     read_buffer: BufferedReader<File>,
     /// BufferedWriter for writing to the file. Initialized with the Path.
@@ -40,24 +42,24 @@ pub trait ReaderFile {
     fn insert_string(&mut self, String);
 }
 
-impl fmt::Debug for Reader {
+impl<'a> fmt::Debug for Reader<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Reader: ( path: {} )", self.path.display())
     }
 }
 
-impl ToString for Reader {
+impl<'a> ToString for Reader<'a> {
     fn to_string(&self) -> String {
         format!("{:?}", self)
     }
 }
 
-impl Reader {
+impl<'a> Reader<'a> {
     /// Creates a new Reader from the Path provided.
     /// Opens a new BufferedReader and BufferedWriter (with Append mode) to the file.
     /// If the file doesn't exist, it is created.
     // TODO, create a .lock file to let other readers know the database is in use (see: #2).
-    pub fn new(apath: &Path) -> Reader {
+    pub fn new(apath: &path::Path) -> Reader {
         Reader::file_lock_create(apath);
         // if file_lock exists, panic and crash with appropriate error.
         // Error: A .lock file already exists, if this is from a previous session, consider
@@ -69,7 +71,7 @@ impl Reader {
             file.flush();
         }
 
-        let mut buffer_writer = match File::open_mode(&apath.clone(), Append, ReadWrite) {
+        let mut buffer_writer = match File::open_mode(apath.clone(), Append, ReadWrite) {
                                     Ok(file)    => { BufferedWriter::new(file) },
                                     Err(..)     => {
                                         panic!("Failed to create a write buffer to file path: {}",
@@ -77,7 +79,7 @@ impl Reader {
                                     },
                                 };
 
-        let mut buffer_reader = match File::open_mode(&apath.clone(), Open, Read) {
+        let mut buffer_reader = match File::open_mode(apath.clone(), Open, Read) {
                                     Ok(file)    => BufferedReader::new(file),
                                     Err(..)     => panic!("Failed to create a read buffer to file path: {}",
                                                             apath.display()),
@@ -118,7 +120,7 @@ impl Reader {
     /// Used primarily for "spilling" the entire database file into a Vec<String>
     fn spill(&mut self) -> Vec<String> {
         let mut result: Vec<String> = Vec::new();
-        let mut buffer_reader = BufferedReader::new(File::open(&self.path.clone()));
+        let mut buffer_reader = BufferedReader::new(File::open(self.path.clone()));
         for line_iter in buffer_reader.lines() {
             result.push(line_iter.unwrap().trim().to_string());
         }
@@ -154,13 +156,13 @@ impl Reader {
 
     /// Creates a .lock file to let other processes know that the database is in use.
     /// This is still unfinished and should be considered broken.
-    fn file_lock_create(lockpath: &Path) -> (bool, Path) {
+    fn file_lock_create(lockpath: &path::Path) -> (bool, Path) {
         if lockpath.exists() {
-            return (true, lockpath.clone())
+            return (true, *lockpath.clone())
         }
 
         let mut filelock_path = lockpath.clone();
-
+/*
         // Remove the old name
         filelock_path.pop();
         // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
@@ -172,11 +174,20 @@ impl Reader {
         match File::create(&filelock_path) {
             Ok(..)  => (true, filelock_path),
             Err(..) => (false, filelock_path),
-        }
+        } */
+        let mut file_lock_path = lockpath.clone().to_path_buf();
+        let mut filename = String::from_str(file_lock_path.file_name().unwrap().to_str().unwrap());
+
+        filename.push_str(".lock");
+
+        file_lock_path.set_file_name(filename.as_slice());
+
+        let new_path: &Path = BorrowFrom::borrow_from(&file_lock_path);
+        (true, *new_path);
     }
 
     /// Removes .lock file when the reader process is completed.
-    fn file_lock_remove(&self, filelock: &Path) -> bool {
+    fn file_lock_remove(&self, filelock: &path::Path) -> bool {
         fs::unlink(&filelock.clone());
         filelock.exists()
     }
@@ -191,7 +202,7 @@ impl Reader {
 
 }
 
-impl ReaderFile for Reader {
+impl<'a> ReaderFile for Reader<'a> {
 
     fn open(&self) -> File {
         match File::open_mode(&self.path, Open, ReadWrite) {
@@ -208,7 +219,7 @@ impl ReaderFile for Reader {
 
 #[test]
 fn test_open_file() {
-    let reader = Reader::new(&Path::new("tests/base-test.txt"));
+    let reader = Reader::new(&path::Path::new("tests/base-test.txt"));
 }
 
 #[test]
@@ -275,7 +286,7 @@ fn test_file_path_lock() {
 
 #[test]
 fn test_reader_show() {
-    let reader: Reader = Reader::new(&Path::new("tests/file.txt"));
+    let reader: Reader = Reader::new(&path::Path::new("tests/file.txt"));
     assert_eq!("Reader: ( path: tests/file.txt )", reader.to_string());
 }
 

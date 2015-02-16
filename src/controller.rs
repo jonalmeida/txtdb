@@ -127,7 +127,7 @@ impl Reader {
     }
 
     /// Inserts a &str into the database.
-    pub fn insert_str(&mut self, item: &str) {
+    fn insert_str(&mut self, item: &str) {
         self.write_buffer.write_line(item);
         self.write_buffer.flush();
         self.id_count = self.id_count + 1;
@@ -135,7 +135,7 @@ impl Reader {
     }
 
     /// Inserts a byte array into the database.
-    pub fn insert(&mut self, item: &[u8]) {
+    fn insert(&mut self, item: &[u8]) {
         self.write_buffer.write(item);
         self.write_buffer.flush();
         self.id_count = self.id_count + 1;

@@ -8,12 +8,6 @@ use std::fmt;
 use std::str;
 use std::string;
 use std::ops::Drop;
-use std::old_io::{File, Open, Append, Read, Write, ReadWrite};
-use std::old_io::TempDir;
-use std::old_io::fs;
-use std::old_io::fs::PathExtensions;
-use std::old_io::{BufferedReader, BufferedWriter};
-use std::old_path::BytesContainer;
 use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 
 /// A result type that's specfici to the Reader module.
@@ -57,56 +51,18 @@ impl Reader {
     /// Creates a new Reader from the Path provided.
     /// Opens a new BufferedReader and BufferedWriter (with Append mode) to the file.
     /// If the file doesn't exist, it is created.
-    // TODO, create a .lock file to let other readers know the database is in use (see: #2).
+    // TODO: create a .lock file to let other readers know the database is in use (see: #2).
     pub fn new(apath: &Path) -> Reader {
         Reader::file_lock_create(apath);
         // if file_lock exists, panic and crash with appropriate error.
         // Error: A .lock file already exists, if this is from a previous session, consider
         // deleting the .lock file.
 
-        if !apath.exists() {
-            let mut file = File::create(&apath.clone());
-            file.write_line("0");
-            file.flush();
-        }
+        // Check if file exists or not. If not, create it.
 
-        let mut buffer_writer = match File::open_mode(&apath.clone(), Append, ReadWrite) {
-                                    Ok(file)    => { BufferedWriter::new(file) },
-                                    Err(..)     => {
-                                        panic!("Failed to create a write buffer to file path: {}",
-                                                apath.display())
-                                    },
-                                };
+        // Create a buffer_writer and buffer_reader.
 
-        let mut buffer_reader = match File::open_mode(&apath.clone(), Open, Read) {
-                                    Ok(file)    => BufferedReader::new(file),
-                                    Err(..)     => panic!("Failed to create a read buffer to file path: {}",
-                                                            apath.display()),
-                                };
-
-        let current_record_count = match buffer_reader.read_line() {
-                                        Ok(line)    => {
-                                            let first_line = utils::string_slice(line);
-                                            let input = first_line[0].trim().parse::<u64>();
-                                            match input {
-                                                Ok(num) => num,
-                                                Err(..) => {
-                                                    warn!("We can't parse the record count from metadata");
-                                                    warn!("Our parsed db metadata: {:?}", first_line);
-                                                    // Setting counter to zero because we can't do
-                                                    // anything else.
-                                                    0
-                                                },
-                                            }
-                                        },
-                                        Err(..) => {
-                                            error!("Can't read database metadata! Everybody do the flop!");
-                                            // Setting counter to zero because we can't do anything
-                                            // else.
-                                            0
-                                        },
-                                   };
-
+        // Get the current_record count or set it to zero. See old_controller for logic.
         Reader {
             path: apath.clone(),
             read_buffer: buffer_reader,
@@ -156,36 +112,24 @@ impl Reader {
     /// Creates a .lock file to let other processes know that the database is in use.
     /// This is still unfinished and should be considered broken.
     fn file_lock_create(lockpath: &Path) -> (bool, Path) {
+        // Check if lock path exists, if not return false and create a new lock file
         if lockpath.exists() {
             return (true, lockpath.clone())
         }
 
-        let mut filelock_path = lockpath.clone();
-
-        // Remove the old name
-        filelock_path.pop();
-        // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
-        let mut filename_lock: String = str::from_utf8(lockpath.filename().unwrap()).unwrap().to_string();
-        filename_lock.push_str(".lock");
-        // Join the new filename with the path
-        filelock_path = filelock_path.join(filename_lock);
-        println!("{}", filelock_path.display());
-        match File::create(&filelock_path) {
-            Ok(..)  => (true, filelock_path),
-            Err(..) => (false, filelock_path),
-        }
+        // Create a filename.lock
     }
 
     /// Removes .lock file when the reader process is completed.
     fn file_lock_remove(&self, filelock: &Path) -> bool {
-        fs::unlink(&filelock.clone());
+        fs::remove_file(&filelock.clone());
         filelock.exists()
     }
 
     /// Updates database counter on disk.
     fn update_counter(&self, value: u64) {
-        let file = File::open_mode(&self.path.clone(), Open, Write);
-        let mut buffer_writer = BufferedWriter::new(file);
+        // Get file to open for writing
+        let mut buffer_writer = BufWriter::new(file);
         buffer_writer.write_line(value.to_string().as_slice());
         buffer_writer.flush();
     }
@@ -194,22 +138,14 @@ impl Reader {
 
 impl Drop for Reader {
     fn drop(&mut self) {
-        let mut lock_path = self.path.clone();
-        let mut filename = String::from_str(lock_path.filename_str().unwrap());
-        filename.push_str(".lock");
-        lock_path.set_filename(filename);
-        println!("File about to remove: {}", lock_path.display());
-        self.file_lock_remove(&lock_path);
+        // Remove the lock file.
     }
 }
 
 impl ReaderFile for Reader {
 
     fn open(&self) -> File {
-        match File::open_mode(&self.path, Open, ReadWrite) {
-            Ok(file)    => file,
-            Err(..)     => { panic!("File {} couldn't be opened!", &self.path.display()); },
-        }
+        // Open file
     }
 
     fn insert_string(&mut self, item: String) {
@@ -218,98 +154,102 @@ impl ReaderFile for Reader {
 
 }
 
-#[test]
-fn test_open_file() {
-    let reader = Reader::new(&Path::new("tests/base-test.txt"));
-}
+#[cfg(test)]
+mod test {
+    use super::*;
 
-#[test]
-fn test_create_file() {
-    use std::rand;
-    let mut path_str = String::from_str("tests/");
-    path_str.push_str(&*rand::random::<usize>().to_string());
-    path_str.push_str(".txt");
+    #[test]
+    fn test_open_file() {
+        let reader = Reader::new(&Path::new("tests/base-test.txt"));
+    }
 
-    let (tempdir, apath) = setup();
-    let path = tempdir.path().join(rand::random::<usize>().to_string());
+    #[test]
+    fn test_create_file() {
+        use std::rand;
+        let mut path_str = String::from_str("tests/");
+        path_str.push_str(&*rand::random::<usize>().to_string());
+        path_str.push_str(".txt");
 
-    //let path = Path::new(path_str);
-    assert!(!path.exists());
-    let reader = Reader::new(&path.clone());
-    assert!(path.exists());
-    fs::unlink(&path);
-}
+        let (tempdir, apath) = setup();
+        let path = tempdir.path().join(rand::random::<usize>().to_string());
 
-#[test]
-fn test_read_file() {
-    // We should output the entire contents of the database file we open
-    // into standard output.
-    let (tempdir, path) = setup();
-    let mut reader = Reader::new(&path);
-    let expected = vec!["2".to_string(), "10 11".to_string(), "20 21".to_string()];
-    assert_eq!(expected, reader.spill());
-}
+        assert!(!path.exists());
+        let reader = Reader::new(&path.clone());
+        assert!(path.exists());
+        fs::unlink(&path);
+    }
 
-#[test]
-fn test_write_string_to_file() {
-    let (tempdir, path) = setup();
-    let mut reader = Reader::new(&path);
-    let expected = vec!["3".to_string(), "10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
-    reader.insert_string("30 31".to_string());
-    assert_eq![expected, reader.spill()];
-}
+    #[test]
+    fn test_read_file() {
+        // We should output the entire contents of the database file we open
+        // into standard output.
+        let (tempdir, path) = setup();
+        let mut reader = Reader::new(&path);
+        let expected = vec!["2".to_string(), "10 11".to_string(), "20 21".to_string()];
+        assert_eq!(expected, reader.spill());
+    }
 
-#[test]
-fn test_write_str_to_file() {
-    let (tempdir, path) = setup();
-    let mut reader = Reader::new(&path);
-    let expected = vec!["3".to_string(), "10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
-    reader.insert_str("30 31");
-    assert_eq![expected, reader.spill()];
-}
+    #[test]
+    fn test_write_string_to_file() {
+        let (tempdir, path) = setup();
+        let mut reader = Reader::new(&path);
+        let expected = vec!["3".to_string(), "10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
+        reader.insert_string("30 31".to_string());
+        assert_eq![expected, reader.spill()];
+    }
 
-#[test]
-fn test_file_path_lock() {
+    #[test]
+    fn test_write_str_to_file() {
+        let (tempdir, path) = setup();
+        let mut reader = Reader::new(&path);
+        let expected = vec!["3".to_string(), "10 11".to_string(), "20 21".to_string(), "30 31".to_string()];
+        reader.insert_str("30 31");
+        assert_eq![expected, reader.spill()];
+    }
 
-    let (tempdir, path) = setup();
+    #[test]
+    fn test_file_path_lock() {
 
-    let mut expected = path.clone();
-    expected.pop();
+        let (tempdir, path) = setup();
 
-    // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
-    let mut filename_lock: String = str::from_utf8(path.filename().unwrap()).unwrap().to_string();
-    filename_lock.push_str(".lock");
-    expected = expected.join(filename_lock);
+        let mut expected = path.clone();
+        expected.pop();
 
-    let reader = Reader::new(&expected.clone());
-    assert!(expected.exists() && expected.is_file());
-}
+        // Surely, there's a less ugly way to take the filename of a Path and convert it to a string?!
+        let mut filename_lock: String = str::from_utf8(path.filename().unwrap()).unwrap().to_string();
+        filename_lock.push_str(".lock");
+        expected = expected.join(filename_lock);
 
-#[test]
-fn test_reader_show() {
-    let reader: Reader = Reader::new(&Path::new("tests/file.txt"));
-    assert_eq!("Reader: ( path: tests/file.txt )", reader.to_string());
-}
+        let reader = Reader::new(&expected.clone());
+        assert!(expected.exists() && expected.is_file());
+    }
 
-/// Test setup code. Current functions:
-/// - Create a new file with `TempDir` and a random name.
-/// - Write a 2x2 matrix of records into the base-test.txt file
-/// - Returns a tuple of `TempDir` and `Path` to the file.
-/// - The path is for r/w access and `TempDir` is so that the directory
-///   isn't deleted before the test is completed.
-#[allow(dead_code, unused_must_use)]
-fn setup() -> (TempDir, Path) {
-    use std::rand;
+    #[test]
+    fn test_reader_show() {
+        let reader: Reader = Reader::new(&Path::new("tests/file.txt"));
+        assert_eq!("Reader: ( path: tests/file.txt )", reader.to_string());
+    }
 
-    let tmpdir = match TempDir::new("txtdb-tests") {
-        Ok(dir) => dir,
-        Err(..) => panic!("Cannot create test directory. Tests will fail."),
-    };
+    /// Test setup code. Current functions:
+    /// - Create a new file with `TempDir` and a random name.
+    /// - Write a 2x2 matrix of records into the base-test.txt file
+    /// - Returns a tuple of `TempDir` and `Path` to the file.
+    /// - The path is for r/w access and `TempDir` is so that the directory
+    ///   isn't deleted before the test is completed.
+    #[allow(dead_code, unused_must_use)]
+    fn setup() -> (TempDir, Path) {
+        use std::rand;
 
-    let final_dir = tmpdir.path().join(rand::random::<usize>().to_string());
+        let tmpdir = match TempDir::new("txtdb-tests") {
+            Ok(dir) => dir,
+            Err(..) => panic!("Cannot create test directory. Tests will fail."),
+        };
 
-    let mut file = File::create(&final_dir.clone());
-    file.write_str("2\n10 11\n20 21\n");
+        let final_dir = tmpdir.path().join(rand::random::<usize>().to_string());
 
-    (tmpdir, final_dir)
+        let mut file = File::create(&final_dir.clone());
+        file.write_str("2\n10 11\n20 21\n");
+
+        (tmpdir, final_dir)
+    }
 }

@@ -8,7 +8,6 @@
 
 use factory::{Record, RecordResult};
 use std::string::ToString;
-use std::old_io::IoError;
 
 pub mod controller;
 pub mod factory;

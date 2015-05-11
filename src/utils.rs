@@ -2,9 +2,8 @@
 // Any utility functions that are misc can go here
 
 extern crate log;
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 
-use std::old_path::BytesContainer;
 use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 
 pub fn string_slice(original: String) -> Vec<String> {

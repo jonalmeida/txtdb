@@ -1,14 +1,19 @@
 #![allow(dead_code, unused_must_use, unused_imports, unstable)]
 
-extern crate "rustc-serialize" as rustc_serialize;
+extern crate rustc_serialize;
 extern crate log;
 
+// Old imports, refine last
 use utils;
 use std::fmt;
 use std::str;
 use std::string;
 use std::ops::Drop;
 use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
+// New imports for Rust 1.0
+use std::path::Path;
+use std::io::{BufWriter, BufReader};
+use std::fs::{File, PathExt};
 
 /// A result type that's specfici to the Reader module.
 /// TODO Decide if this is necessary
@@ -19,9 +24,9 @@ pub struct Reader {
     /// Path to file where the Reader is created.
     path: Path,
     /// BufferedReader for reading the file. Initialized with the Path.
-    read_buffer: BufferedReader<File>,
+    read_buffer: BufReader<File>,
     /// BufferedWriter for writing to the file. Initialized with the Path.
-    write_buffer: BufferedWriter<File>,
+    write_buffer: BufWriter<File>,
     /// Index counter to know how many records exist.
     id_count: u64,
 }
@@ -49,22 +54,25 @@ impl ToString for Reader {
 
 impl Reader {
     /// Creates a new Reader from the Path provided.
-    /// Opens a new BufferedReader and BufferedWriter (with Append mode) to the file.
+    /// Opens a new BufReader and BufWriter (with Append mode) to the file.
     /// If the file doesn't exist, it is created.
     // TODO: create a .lock file to let other readers know the database is in use (see: #2).
-    pub fn new(apath: &Path) -> Reader {
-        Reader::file_lock_create(apath);
+    pub fn new(path: &Path) -> Reader {
+        Reader::file_lock_create(path);
         // if file_lock exists, panic and crash with appropriate error.
         // Error: A .lock file already exists, if this is from a previous session, consider
         // deleting the .lock file.
 
         // Check if file exists or not. If not, create it.
-
+        if path.is_file() {
+            File::create(&path);
+        }
         // Create a buffer_writer and buffer_reader.
-
+        let buffer_reader = BufReader::new(&path);
+        let buffer_writer = BufWriter::new(&path);
         // Get the current_record count or set it to zero. See old_controller for logic.
         Reader {
-            path: apath.clone(),
+            path: path.clone(),
             read_buffer: buffer_reader,
             write_buffer: buffer_writer,
             id_count: current_record_count,
@@ -75,7 +83,7 @@ impl Reader {
     /// Used primarily for "spilling" the entire database file into a Vec<String>
     fn spill(&mut self) -> Vec<String> {
         let mut result: Vec<String> = Vec::new();
-        let mut buffer_reader = BufferedReader::new(File::open(&self.path.clone()));
+        let mut buffer_reader = BufReader::new(File::open(&self.path.clone()));
         for line_iter in buffer_reader.lines() {
             result.push(line_iter.unwrap().trim().to_string());
         }
@@ -103,7 +111,7 @@ impl Reader {
         match self.read_buffer.read_line() {
             Ok(string)  => { string.to_string() },
             Err(..)     => {
-                error!("Unable to read next line. BufferedReader error.");
+                error!("Unable to read next line. BufReader error.");
                 "".to_string()
             },
         }
@@ -111,10 +119,10 @@ impl Reader {
 
     /// Creates a .lock file to let other processes know that the database is in use.
     /// This is still unfinished and should be considered broken.
-    fn file_lock_create(lockpath: &Path) -> (bool, Path) {
+    fn file_lock_create(lockpath: &Path) -> Path {
         // Check if lock path exists, if not return false and create a new lock file
         if lockpath.exists() {
-            return (true, lockpath.clone())
+            return lockpath
         }
 
         // Create a filename.lock

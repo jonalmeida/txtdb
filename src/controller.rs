@@ -13,7 +13,7 @@ use self::rustc_serialize::base64::{STANDARD, FromBase64, ToBase64};
 // New imports for Rust 1.0
 use std::path::Path;
 use std::io::{BufWriter, BufReader};
-use std::fs::{File, PathExt};
+use std::fs::{File, PathExt, remove_file};
 
 /// A result type that's specfici to the Reader module.
 /// TODO Decide if this is necessary
@@ -58,6 +58,7 @@ impl Reader {
     /// If the file doesn't exist, it is created.
     // TODO: create a .lock file to let other readers know the database is in use (see: #2).
     pub fn new(path: &Path) -> Reader {
+
         Reader::file_lock_create(path);
         // if file_lock exists, panic and crash with appropriate error.
         // Error: A .lock file already exists, if this is from a previous session, consider
@@ -65,17 +66,24 @@ impl Reader {
 
         // Check if file exists or not. If not, create it.
         if path.is_file() {
-            File::create(&path);
+            let mut file = File::create(&path);
+            file.write_all(b"0");
+            file.flush();
         }
         // Create a buffer_writer and buffer_reader.
         let buffer_reader = BufReader::new(&path);
         let buffer_writer = BufWriter::new(&path);
         // Get the current_record count or set it to zero. See old_controller for logic.
+        let mut record_count_string;
+        buffer_reader.read_line(record_count_string);
+        //let record_count = record_count_string.trim().parse::<u64>();
+
         Reader {
             path: path.clone(),
             read_buffer: buffer_reader,
             write_buffer: buffer_writer,
-            id_count: current_record_count,
+            //id_count: record_count,
+            id_count: 0,
         }
     }
 
@@ -130,14 +138,14 @@ impl Reader {
 
     /// Removes .lock file when the reader process is completed.
     fn file_lock_remove(&self, filelock: &Path) -> bool {
-        fs::remove_file(&filelock.clone());
+        try!(remove_file(&filelock.clone()));
         filelock.exists()
     }
 
     /// Updates database counter on disk.
     fn update_counter(&self, value: u64) {
         // Get file to open for writing
-        let mut buffer_writer = BufWriter::new(file);
+        let mut buffer_writer = BufWriter::new(self.file);
         buffer_writer.write_line(value.to_string().as_slice());
         buffer_writer.flush();
     }

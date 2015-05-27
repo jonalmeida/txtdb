@@ -20,9 +20,9 @@ use std::fs::{File, PathExt, remove_file};
 pub type ReaderResult<T, E> = Result<T, E>;
 
 /// Reader struct of its basic properties.
-pub struct Reader {
+pub struct Reader<'a> {
     /// Path to file where the Reader is created.
-    path: Path,
+    path: &'a Path,
     /// BufferedReader for reading the file. Initialized with the Path.
     read_buffer: BufReader<File>,
     /// BufferedWriter for writing to the file. Initialized with the Path.
@@ -57,7 +57,7 @@ impl Reader {
     /// Opens a new BufReader and BufWriter (with Append mode) to the file.
     /// If the file doesn't exist, it is created.
     // TODO: create a .lock file to let other readers know the database is in use (see: #2).
-    pub fn new(path: &Path) -> Reader {
+    pub fn new<P: AsRef<Path>>(path: P) -> Reader {
 
         Reader::file_lock_create(path);
         // if file_lock exists, panic and crash with appropriate error.
